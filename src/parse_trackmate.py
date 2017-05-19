@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 
-This file contains a collection of functions for reading and parsing xml files 
-output by the TrackMate ImageJ plugin
+This module contains a collection of functions for reading and parsing xml 
+files output by the TrackMate ImageJ plugin.
 
 Written by Vladislav Belyy (UCSF)
 
@@ -107,14 +107,9 @@ def build_spot_lists_by_track(tracks_raw, spots):
         processed_tracks (tuple): Contains the following lists.
             all_track_coords (list): numpy arrays of x,y,t spot positions
             all_track_edges (list): dicts of attributes of each edge
-            all_track_spot_ids (list): spot IDs and spot indices for each track
+            all_track_spot_ids (list): numpy arrays of spot IDs and spot 
+                indices for each track
     """
-    
-    
-    # Build x,y, t spot coordinates for each track
-    # 'all_tracks' and 'spots' are lists of dictionaries directly
-    # from the output of the TrackMate plugin
-    
     # Build an array of spot indices
     spot_ids = np.empty([len(spots)], dtype=int)
     for i, spot in enumerate(spots):

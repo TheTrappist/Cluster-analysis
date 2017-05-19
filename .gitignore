@@ -8,6 +8,7 @@
 
 # Raw data files
 *.xml
+*.json
 
 
 # MacOS general entries:
