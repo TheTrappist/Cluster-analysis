@@ -124,10 +124,22 @@ def build_spot_lists_by_track(tracks_raw, spots):
         edges = list()
         for edge in curr_edges:
             edge_dict = dict(edge.attributes.items())
+            
+            # Find out which frame each edge starts on (since apparently the 
+            # EDGE_TIME key is unreliable for sorting)
+            source_spot_id = int(edge_dict['SPOT_SOURCE_ID'])
+            source_spot_ind = np.where(spot_ids==source_spot_id)[0][0]
+            source_spot_frame = spots[source_spot_ind]['FRAME']
+            
+            # Add a few useful properties to the edge dictionary
+            edge_dict['source_spot_frame'] = source_spot_frame
             edge_dict['track_name'] = track_name
+            
             edges.append(edge_dict)
-
-        edges.sort(key=lambda k: float(k['EDGE_TIME']))
+        
+        # Sort edges in this track by frame in increasing order
+        edges.sort(key=lambda k: float(k['source_spot_frame']))
+        
         # build spot list
         num_spots = len(edges) + 1
         track_coords = np.empty([num_spots, 3], dtype=float) # x,y,t
@@ -146,7 +158,7 @@ def build_spot_lists_by_track(tracks_raw, spots):
 
             track_coords[i][0] = spots[spot_ind]['POSITION_X']
             track_coords[i][1] = spots[spot_ind]['POSITION_Y']
-            track_coords[i][2] = spots[spot_ind]['POSITION_T']
+            track_coords[i][2] = spots[spot_ind]['FRAME']
 
         all_track_edges.append(edges)
         all_track_coords.append(track_coords)
