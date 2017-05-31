@@ -40,7 +40,7 @@ calibration  = current_imp.getCalibration()
 stack_title = current_imp.getTitle()
 file_info = current_imp.getOriginalFileInfo()
 file_dir = file_info.directory
-n_slices = file_info.nImages
+n_slices = stack.getSize()
 
 #############################################
 

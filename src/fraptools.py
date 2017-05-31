@@ -99,7 +99,7 @@ def fit_frap(bkgnd_corr_int, frame_interval=1.0, bleach_n_frames=1):
         
         # set up fit bounds
         a_upper = max(y_data)*2
-        b_upper = 2 * frame_interval
+        b_upper = 4 / frame_interval
         fit_bounds = (0, [a_upper, b_upper])
         
         # fit recovery curve
@@ -155,3 +155,4 @@ def plot_fit_results(fit_result, data, rc_params=[18,8]):
     axarr[1].legend(loc='lower right', shadow=True)
     
     return fig, axarr
+
