@@ -20,7 +20,7 @@ outer_radius = 1.2;
 save_output = true;
 save_dir = 'spot_radii';
 
-debug_mode = true; // If true, runs slower but with more visual output
+debug_mode = false; // If true, runs slower but with more visual output
 
 //// CODE STARTS HERE - DON'T MODIFY UNLESS YOU KNOW WHAT YOU'RE DOING //////////
 

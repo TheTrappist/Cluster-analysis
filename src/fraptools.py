@@ -7,6 +7,7 @@ Written by Vladislav Belyy (UCSF)
 
 """
 import numpy as np
+import pandas as pd
 import matplotlib.pylab as plt
 from scipy.optimize import curve_fit
 import json
@@ -99,6 +100,8 @@ def fit_frap(bkgnd_corr_int, frame_interval=1.0, bleach_n_frames=1):
         
         # set up fit bounds
         a_upper = max(y_data)*2
+        if a_upper <= 0:
+            a_upper = 0.001 # catches traces that are fully lower than zero
         b_upper = 4 / frame_interval
         fit_bounds = (0, [a_upper, b_upper])
         
@@ -133,7 +136,7 @@ def plot_fit_results(fit_result, data, rc_params=[18,8]):
         rc_params (list): matplotlib figsize setting. Defaults to [18,8].
 
     Returns:
-        fig (matplotib figue) : Output figure
+        fig (matplotib figure) : Output figure
         axarr (matplotlib axes array): Axes of the output figure (2 elements)          
     """
     plt.rcParams["figure.figsize"] = rc_params
