@@ -1,5 +1,6 @@
 # Project-specific entries:
 *results.txt
+*_bkgnd.txt
 
 # Image files
 *.png
