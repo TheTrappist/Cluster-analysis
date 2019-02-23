@@ -30,7 +30,7 @@ def read_ij_intensity (file):
     
     return intensity_data
 
-def get_traces_from_df_list(df_list, file_names, exclude=None):
+def get_traces_from_df_list(df_list, file_names, exclude=()):
     """Extract singe traces from Extract_two_radii_TrackMate.ijm data.
     
     Args:
@@ -41,7 +41,7 @@ def get_traces_from_df_list(df_list, file_names, exclude=None):
             are coming from
         exclude (list of tuples): Traces to exclude. Each item in the list
             is a tuple containing file name and track ID of the trace to
-            be excluded. Defaults to None.
+            be excluded. Defaults to an emptry tuple.
     
     Returns:
         result_df (list of pandas dataframes): One dataframe per trace.
@@ -75,6 +75,57 @@ def get_traces_from_df_list(df_list, file_names, exclude=None):
             # save the trace if it's not excluded
             curr_trace_number = curr_df['track_IDs'].iloc[0]
             trace_ID = (file_name, curr_trace_number)
+            
+            if trace_ID not in exclude:
+            
+                result_df.append(curr_df)
+                result_np.append(curr_np)   
+                trace_IDs.append(trace_ID)
+        
+    return result_df, result_np, trace_IDs
+
+def read_nonclust_frap_data(df_list, file_names, exclude=()):
+    """Extract singe traces from Manual_FRAP_ROI.ijm data.
+    
+    Args:
+        df_list (list of pandas dataframes): List of parsed data from
+            the output file of the "Manual_FRAP_ROI.ijm"
+            ImageJ macro.
+        file_names (list of str): List of file names that the traces
+            are coming from
+        exclude (list of tuples): Traces to exclude. Each item in the list
+            is a tuple containing file name and track ID of the trace to
+            be excluded. Defaults to an empty tuple.
+    
+    Returns:
+        result_df (list of pandas dataframes): One dataframe per trace.
+            Contains two columns, "ROI_intensity" and "Bkgnd_intensity".
+        corr_int (list of numpy arrays): list of one array per trace,
+            containing just the background-corrected intensity values.
+        trace_IDs (list of tuples): list of filenames corresponding 
+            to each trace and trace ID. Same length as result_df.
+        
+    """
+    
+    result_df = []
+    result_np = []
+    trace_IDs = []
+    
+    for df, file_name in zip(df_list, file_names):
+        
+        # Find the number of FRAP/background trace pairs in file
+        num_roi_pairs = int((len(df.columns) - 1) / 4)
+        
+        # break up data into smaller data frames, one per trace
+        for i in range(num_roi_pairs):
+            
+            # there are four columns per trace
+            curr_df = df.iloc[:, i*4+1:i*4+5]
+            bkgnd_corr_int = curr_df.iloc[:,1] - curr_df.iloc[:,3]
+            curr_np = bkgnd_corr_int.values - min(bkgnd_corr_int.values)
+
+            # save the trace if it's not excluded
+            trace_ID = (file_name, i)
             
             if trace_ID not in exclude:
             

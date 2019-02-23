@@ -1,6 +1,9 @@
 # Project-specific entries:
 *results.txt
+*results.csv
+*traces.csv
 *_bkgnd.txt
+
 
 # Image files
 *.png
@@ -11,7 +14,7 @@
 # Raw data files
 *.xml
 *.json
-
+*.zip
 
 # MacOS general entries:
 
