@@ -7,7 +7,6 @@ Written by Vladislav Belyy (UCSF)
 
 """
 import numpy as np
-import pandas as pd
 import matplotlib.pylab as plt
 from scipy.optimize import curve_fit
 import json
@@ -231,7 +230,8 @@ def fit_frap(bkgnd_corr_int, frame_interval=1.0, bleach_n_frames=1):
         
     return fit_results, norm_data
 
-def fit_frap_smart(traces, frame_interval=1.0, max_bleach_frames=6):
+def fit_frap_smart(traces, frame_interval=1.0, max_bleach_frames=6, 
+                   prebleach_frames=10, skip_frames=2, min_bleach_jump=0.2):
     """Fit each trace to a FRAP curve with smart normalization.
     
     This function finds the bleach point of the trace using a maximum-slope
@@ -244,7 +244,15 @@ def fit_frap_smart(traces, frame_interval=1.0, max_bleach_frames=6):
         frame_interval (float): time, in seconds, between subsequent frames.
             Defaults to 1.0.
         max_bleach_frames (int): how many frames can the bleaching pulse last?
-            Defaults to 3.
+            Defaults to 6.
+        prebleach_frames (int): Desired number of frames to average to find
+            the pre-bleach intensity level. Defaults to 10.
+        skip_frames (int): number of frames to skip at the beginning of the 
+            trace (the first few frames of each trace can be bleachy and 
+            unreliable). Defaults to 2.
+        min_bleach_jump (float): how large of a jump in a single frame, 
+            expressed as a fraction of initial intensity, counts as the start
+            of a bleaching frame? Defaults to 0.2.
 
     Returns:
         fit_results (list): List of fit parameters and y-values for the fit 
@@ -256,10 +264,13 @@ def fit_frap_smart(traces, frame_interval=1.0, max_bleach_frames=6):
     norm_data = []
 
     for trace in traces:
+        # Remove the skipped frames
+        trace = trace[skip_frames:]
         
         # Find the frame where recovery begins.
         # First, locate the point with the largest negative slope.
-        slopes = trace[1:] - trace[:-1]
+        trace_pre_norm = trace / trace[0]
+        slopes = trace_pre_norm[1:] - trace_pre_norm[:-1]
         min_slope = min(slopes)
         min_slope_index = np.where(slopes == min_slope)[0][0] + 1
         
@@ -276,26 +287,23 @@ def fit_frap_smart(traces, frame_interval=1.0, max_bleach_frames=6):
         
         recovery_start_index = min_index
         
-        # Step back in time to find where bleaching starts
-        bleach_start_index = min_slope_index
-        f_cur = 0
+        # Find pre-bleach intensity level to normalize the trace.
+        # Use the mean of the first prebleach_frames data points or however 
+        # many frames occur before a large (>min_bleach_jump) jump in intensity
+        abs_slope = np.absolute(slopes)
+        prebleach_frames = min(prebleach_frames, len(trace))
         try:
-            while slopes[bleach_start_index] < 0 and f_cur < max_bleach_frames:
-                bleach_start_index = bleach_start_index - 1
-                f_cur = f_cur + 1
+            big_jump_index = np.where(abs_slope > min_bleach_jump)[0][0] + 1
+            last_prebleach_frame = min(prebleach_frames, big_jump_index)
         except:
-            bleach_start_index = min_slope_index
-            print("Bleach start not found")
-            break
-             
-        # This frame is the bleach frame and contains the minimum intensity
+            last_prebleach_frame = prebleach_frames 
+               
+        # Normalize the trace such that the pre-bleach level is 1 and lowest
+        # intensity after bleaching is 0.
         lowest = trace[recovery_start_index]
         bleach_frame = recovery_start_index
         bleach_time = bleach_frame * frame_interval
         trace_norm = np.array(trace-lowest)
-        
-        # Then find mean intensity prior to bleaching
-        last_prebleach_frame = max([bleach_start_index, 1])
         y_prebleach = trace_norm[:last_prebleach_frame]
         int_prebleach = np.mean(y_prebleach)
         
