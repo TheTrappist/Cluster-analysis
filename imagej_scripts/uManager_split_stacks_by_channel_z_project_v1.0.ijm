@@ -2,7 +2,7 @@
 // projection tiffs, split by channel. The main data folder should contain sub-folders (each sub-folder in considered
 // a separate condition). The names of all sub-folders should start with the user-defined parameter
 // "template_name", which can be modified below. Each sub-folder can contain any number of multi-color
-// TIFF files, one per position. 
+// TIFF files, one per position. Works both for single-timepoint images and movies.
 //
 // The output is placed in a new directory, which can be set below by changing save_dir_name, and
 // consists of one sub-folder per condition, with one sub-folder for each individual file within
@@ -14,11 +14,11 @@
 // These need to be set manually
 template_name = "vVB_"; // what do all the data folders start with?
 save_results = true;
-save_dir_name = "Avg_intensity_stacks";
+save_dir_name = "Max_intensity_stacks";
 
 z_stack = true; // make a z-stack?
 // options for projection: "Average Intensity", "Max Intensity"
-projection_type = "Average Intensity" // what type of projection to use?
+projection_type = "Max Intensity" // what type of projection to use?
 
 // Ask user to point to data file directory
 dir_working = getDirectory("Choose the parent directory of uManager data files");
@@ -76,7 +76,7 @@ for (i = 0; i < num_conditions; i++) {
 		// Make z-stack, if needed
 		title = getTitle();
 		if (z_stack) {
-			run("Z Project...", "projection=["+projection_type+"]");
+			run("Z Project...", "projection=["+projection_type+"] all");
 			close(title);
 		}
 
