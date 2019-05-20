@@ -89,6 +89,24 @@ def get_data_cp_hdf5 (file, obj, data_fields=[]):
         df = pd.DataFrame(data_dict)
     return df
 
+def get_data_cp_csv (file, data_fields=None):
+    """Extract data from a Cell Profiler CSV file as a Pandas dataframe.
+    Returns data from all available fields unless specific ones are specified
+    
+    Args:
+        file (str): Full path to HDF5 file written by Cell Profiler.
+        data_fields (list of str): Names of fields for which to get data. If 
+            left empty, function returns all available fields. Defaults to
+            None.
+    Returns:
+        df (Pandas dataframe): all requested data from obj_name.
+    """
+
+
+    df = pd.read_csv(file, usecols=data_fields)
+    return df
+
+
 def get_relationship_cp_hdf5 (file, obj1, obj2, modules=[]):
     """Extract relationship information from a Cell Profiler HDF5 output file 
     as a Pandas dataframe.
