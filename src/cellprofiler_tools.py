@@ -2,7 +2,7 @@
 """
 
 This module contains a collection of functions for extracting and processing
-Cell Profiler outputs.
+CellProfiler outputs.
 
 Written by Vladislav Belyy (UCSF)
 
@@ -13,7 +13,7 @@ import h5py
 
 
 def get_data_cp_hdf5 (file, obj, data_fields=[]):
-    """Extract data from a Cell Profiler HDF5 file as a Pandas dataframe.
+    """Extract data from a CellProfiler HDF5 file as a Pandas dataframe.
     Returns data from all available fields unless specific ones are specified
     
     Args:
@@ -62,36 +62,14 @@ def get_data_cp_hdf5 (file, obj, data_fields=[]):
                       "length mismatch")
             
             data_dict.update({field : data_trunc})
-            
-            """
-            # This block performs faster but only works if all indexes 
-            # share the same order
-            
-            # calculate total number of data points
-            num_data = np.sum(index[:,2] - index[:,1])
-            # Check for consistent order of images in index
-            print(field)
-            if not np.any(prev_imagenumber):
-                prev_imagenumber = index[:,0]
-            elif not np.array_equal(prev_imagenumber, index[:,0]):
-                raise Exception("Images not listed in the same order!")
-                
-            # Use index to parse data in cases when some points are not used
-            if num_data != len(data):
-                data_trunc = []
-                for row in index:
-                    data_trunc.extend(data[row[1]:row[2]])
-                data = data_trunc
-            data_dict.update({field : data})
-            """       
-        
-        # Convert data to dataframe and return
+          
+          # Convert data to dataframe and return
         df = pd.DataFrame(data_dict)
     return df
 
 def get_data_cp_csv (file, data_fields=None):
-    """Extract data from a Cell Profiler CSV file as a Pandas dataframe.
-    Returns data from all available fields unless specific ones are specified
+    """Extract data from a CellProfiler CSV file as a Pandas dataframe.
+    Returns data from all available fields unless specific ones are specified.
     
     Args:
         file (str): Full path to HDF5 file written by Cell Profiler.
@@ -161,4 +139,152 @@ def get_relationship_cp_hdf5 (file, obj1, obj2, modules=[]):
         # Convert data to dataframe and return
         df = pd.DataFrame(data_dict)
         
+    return df
+
+def add_image_prop_to_cells (cells, images, prop):
+    """Add a column for an image-specific property to the 'cells' dataframe.
+    
+    This function is useful for plotting the distribution of individual cell 
+    measurements against properties that are common to the entire image, such
+    as timepoint, type of treatment, etc. The 'cells' dataframe is appended
+    with a new column that contains the value of the specified property 'prop'
+    for each cell. 'prop' must be a valid field in the 'images' dataframe.
+    
+    Args:
+        cells (pandas dataframe): Collection of cell-by-cell properties. Must 
+            contain the 'ImageNumber' column.
+        images (pandas dataframe): Collection of image properties. Must contain
+            an 'ImageNumber' column as well as a column matching the argument
+            'prop'
+        prop (str): Name of the image-wide property to be added to the 'cells'
+            dataframe. Must be a valid column name in 'images'.
+
+            
+    Returns:
+        None (the dataframe 'cells' gets modified in place).      
+    """
+    
+    if prop in cells.columns:
+        raise Warning('Column named '+prop+' already exists in cells!')
+    
+    property_values = []
+    
+    for index, cell in cells.iterrows():
+        curr_value = images.loc[images['ImageNumber'] == cell['ImageNumber'], 
+                                prop].item()
+
+        property_values.append(curr_value)
+    
+    cells[prop] = property_values
+    
+    return None
+
+def add_child_prop_to_cells (cells, children, prop, rel_col, result_name,
+                             statistic='mean'):
+    """Add a column for a statistic of child objects to the 'cells' dataframe.
+    
+    Finds all child objects for each cell in 'cells', calculates the desired
+    statistic of the chosen property ('prop') for that cell, and adds the 
+    statistic to the 'cells' dataframe as a new column. A use case would be to
+    calculate the mean intensity of all clusters in each cell.
+    
+    Args:
+        cells (pandas dataframe): Collection of cell-by-cell properties.
+        children (pandas dataframe): Collection of properties of the child
+            objects. Must contain a column with a name that matches 'prop'.
+        prop (str): Name of the property to be added to the 'cells'
+            dataframe.
+        rel_col (str): Name of the column in 'children' that contains the
+            object ID of the parent.
+        result_name (str): Name of the new 'cells' column holding the 
+            calculated statistic.
+        statistic (str): type of statistic to calculate for the chilren. Valid
+            values are 'mean', 'median', and 'sum'. Defaults to 'mean'.
+
+    Returns:
+        None (the dataframe 'cells' gets modified in place).      
+    """
+      
+    
+    # Define available statistic functions
+    def mean(x):
+        return np.mean(x)
+    def median(x):
+        return np.median(x)
+    def sum_x(x):
+        return np.sum(x)
+    stat_fun = {'mean': mean,
+                'median' : median,
+                'sum': sum_x}
+    
+    property_values = []
+    for index, cell in cells.iterrows():
+        
+        # Find indices of children that match both ImageNumber and ObjectNumber
+        # of the current cell
+        children_in_image = children['ImageNumber'] == cell['ImageNumber']
+        children_with_cell_id = children[rel_col] == cell['ObjectNumber']
+        children_in_cell = children_in_image & children_with_cell_id
+        
+        # Extract the desired property from children of the current cell
+        prop_values = children.loc[children_in_cell, prop]
+        
+        if prop_values.empty:
+            curr_value = np.nan     
+        else:
+            curr_value = stat_fun[statistic](prop_values)
+        
+        property_values.append(curr_value)
+        
+    cells[result_name] = property_values
+    
+    return None
+
+def bootstrap_cell_prop (cells, measurement, group, nreps=1000):
+    """Calculate bootstrap sample means for a measurement column in 'cells'.
+    
+    Breaks up cells into groups based on the value in the 'group' column of the
+    'cells' dataframe and individually performs bootstrap resampling for each
+    group. Groups typically comprise a large number of cells (e.g. all cells in
+    one image or all cells treated with the same condition), and measurement is
+    something that was individually measured for each cell (e.g. intensity,
+    number of clusters, etc.). Both 'group' and 'measurement' must be valid
+    names of columns in 'cells'.
+    
+    Args:
+        cells (pandas dataframe): Collection of cell-by-cell properties.
+        images (pandas dataframe): Collection of image properties. Must contain
+            an 'ImageNumber' column as well as a column matching the argument
+            'prop'
+        measurement (str): Name of the cell-specific measurement to be 
+            bootstrapped.
+        group (str): Property that unites many cells into sensible categories.
+        nreps (int): Number of bootstrap iterations. Defaults to 1000.
+            
+    Returns:
+         df (pandas dataframe): bootstrap results per group (each group is a
+            separate column in the dataframe). The individual values in each
+            column are mean values of 'measurement' from individual resampling
+            runs.
+    """
+    result = {}
+    groups_unique = cells[group].unique()
+    
+    for grp in groups_unique:
+        
+        cells_in_group = cells.loc[cells[group] == grp]
+        total_cells = len(cells_in_group)
+        
+        # Bootstrap the samples to estimate uncertainties
+        metric = []
+        for i in range(nreps):
+            subsamp_cells = np.random.choice(list(cells_in_group[measurement]),
+                                             total_cells)
+            metric_mean_curr_rep = np.mean(subsamp_cells)
+            metric.append(metric_mean_curr_rep)
+        
+        result.update({grp : metric})
+    
+    df = pd.DataFrame(data=result)
+    
     return df
