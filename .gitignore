@@ -13,7 +13,6 @@
 *.csv
 *.json
 *.zip
-*.cpproj
 *.h5
 
 # MacOS general entries:
