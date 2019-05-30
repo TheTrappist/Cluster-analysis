@@ -342,7 +342,7 @@ def fit_frap_smart(traces, frame_interval=1.0, max_bleach_frames=6,
         
     return fit_results, norm_data
 
-def plot_fit_results(fit_result, data, rc_params=[18,8]):
+def plot_fit_results(fit_result, data, rc_params=[4,2]):
     """Plot the results of a FRAP fit.
     
     Args:
@@ -357,6 +357,7 @@ def plot_fit_results(fit_result, data, rc_params=[18,8]):
     """
     plt.rcParams["figure.figsize"] = rc_params
     fig, axarr = plt.subplots(1,2)
+    fig.tight_layout(pad=2)
 
     axarr[0].set_title('Full trace')
     axarr[0].set_xlabel('Time (s)')
@@ -372,6 +373,13 @@ def plot_fit_results(fit_result, data, rc_params=[18,8]):
     axarr[1].plot(data['t_trunc_0'], data['fit_curve'], 'r-', 
                          label='fit')
     axarr[1].legend(loc='lower right', shadow=True)
+    
+    # Adjust the y-limits of axis 1
+    ylims_fit = axarr[1].get_ylim()
+    y_max = max(ylims_fit[1], 1.5)
+    ylims = [ylims_fit[0], y_max]
+    
+    axarr[0].set_ylim(ylims)
     
     return fig, axarr
 
