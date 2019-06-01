@@ -102,7 +102,7 @@ def fit_diffusion_const(msd_data, dim=2, nframes=10):
     
     return fit_params
 
-def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8]):
+def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8], ms=3):
     """Plot the results of an MSD calculation and individual trajectories.
     
     Args:
@@ -114,6 +114,7 @@ def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8]):
             sterr (numpy array): standard errors of MSD
         fit_params (dict): parameters of fit to be plotted, if desired
         rc_params (list): matplotlib figsize setting. Defaults to [18,8].
+        ms (float): marker size for the scatterplot. Defaults to 3.
 
     Returns:
         fig (matplotib figue) : Output figure
@@ -121,13 +122,24 @@ def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8]):
     """
     plt.rcParams["figure.figsize"] = rc_params
     
+    # determine whether there are multiple trajectories present
+    if len(t_dsq) > 1:
+        mult_traj = True
+    else:
+        mult_traj = False
+    
     time, mean_dsq, std_dsq, sterr_dsq = msd_data
     
     fig, axarr = plt.subplots(1,2)
-    axarr[0].set_title('All tracks')
+    
+    if mult_traj:
+        axarr[0].set_title('All track trajectories')
+    else:
+        axarr[0].set_title('Particle trajectory')
     axarr[0].set_xlabel('Time (s)')
+    
     axarr[0].set_ylabel(r'Squared displacement ($\mu m^2$)')
-    axarr[1].set_title('Mean squared displacements')
+    axarr[1].set_title('Mean squared displacement')
     axarr[1].set_xlabel('Time (s)')
     axarr[1].set_ylabel(r'MSD ($\mu m^2$)')
     
@@ -136,11 +148,11 @@ def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8]):
         axarr[0].plot(x[:,0], x[:,1])
         
     # Plot MSD with errors
-    axarr[1].errorbar(time, mean_dsq, yerr=sterr_dsq, fmt='o')
+    axarr[1].errorbar(time, mean_dsq, yerr=sterr_dsq, fmt='o', ms=ms)
     
     if fit_params is not None:
         label = r'D = {0:.5f} $\mu m^2/s$'.format(fit_params['dc'])     
-        t_fit = np.arange(0,max(time), max(time)/5)
+        t_fit = np.arange(0,(max(time)*1.01), max(time)/5)
         y_fit = t_fit * fit_params['slope']
         axarr[1].plot(t_fit,y_fit,label=label)
         axarr[1].legend(loc='upper left', shadow=True)
@@ -148,8 +160,8 @@ def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8]):
     
     return fig, axarr
 
-def make_fig_save_dirs(save_dir_root):
-    """Create directories for saving figures in svg and png formats.
+def make_fig_save_dirs(save_dir_root, pdf=False):
+    """Create directories for saving figures in svg and png formats
     
     Args:
         save_dir_root (string): root directory for saving figures
@@ -183,5 +195,21 @@ def save_fig(fig, file_name, dir_svg, dir_png):
     fig_filename_png = os.path.join(dir_png, (file_name+'.png'))
     fig.savefig(fig_filename_svg)
     fig.savefig(fig_filename_png)
+    
+    return
+
+def save_fig_pdf(fig, file_name, dir_pdf):
+    """Save figure in pdf format.
+    
+    Args:
+        fig (matplotlib figure): figure to be saved
+        file_name (string): desired name of figure file
+        dir_pdf (string): valid directory
+
+    Returns:
+        None         
+    """
+    fig_filename_pdf = os.path.join(dir_pdf, (file_name+'.pdf'))
+    fig.savefig(fig_filename_pdf)
     
     return
