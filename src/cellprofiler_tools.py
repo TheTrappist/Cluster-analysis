@@ -165,7 +165,7 @@ def add_image_prop_to_cells (cells, images, prop):
     """
     
     if prop in cells.columns:
-        raise Warning('Column named '+prop+' already exists in cells!')
+        print('Warning: column named '+prop+' already exists in cells!')
     
     property_values = []
     
@@ -179,30 +179,72 @@ def add_image_prop_to_cells (cells, images, prop):
     
     return None
 
-def add_child_prop_to_cells (cells, children, prop, rel_col, result_name,
-                             statistic='mean'):
-    """Add a column for a statistic of child objects to the 'cells' dataframe.
+def add_parent_prop (children, parents, prop, rel_col, result_name):
+    """Add a column for a parent-derived property in the "children" dataframe.
     
-    Finds all child objects for each cell in 'cells', calculates the desired
-    statistic of the chosen property ('prop') for that cell, and adds the 
-    statistic to the 'cells' dataframe as a new column. A use case would be to
+    Args:
+        children (pandas dataframe): Collection of child object properties.
+        parents (pandas dataframe): Collection of parent object properties.
+        prop (str): Name of the property to be added to the 'children'
+            dataframe. Must be a valid column name in 'parents'.
+        rel_col (str): Name of the column in 'children' that contains the
+            object ID of the parent.
+        result_name (str): Name of the new column in'children' holding the 
+            parent-derived property
+            
+    Returns:
+        None (the dataframe 'children' gets modified in place).      
+    """
+    
+    if result_name in children.columns:
+        print('Warning: column named '+result_name+' already exists!')
+    
+    property_values = []
+    nan_flag = False
+    
+    for index, child in children.iterrows():
+        parents_in_image = parents['ImageNumber'] == child['ImageNumber']
+        parents_with_obj_num = child[rel_col] == parents['ObjectNumber']
+        parent = parents_in_image & parents_with_obj_num
+        try:
+            curr_value = parents.loc[parent, prop].item()
+        except:
+            curr_value = np.nan
+            nan_flag = True
+
+        property_values.append(curr_value)
+    
+    children[result_name] = property_values
+    
+    if nan_flag:
+        print("WARNING: Some children did not have valid parents!")
+    
+    return None
+
+def add_child_prop_to_parents (parents, children, prop, rel_col, result_name,
+                             statistic='mean'):
+    """Add a column for a statistic of child objects to the parents dataframe.
+    
+    Finds all child objects for each object in parents, calculates the desired
+    statistic of the chosen property ('prop') for that parent, and adds the 
+    statistic to the parents dataframe as a new column. A use case would be to
     calculate the mean intensity of all clusters in each cell.
     
     Args:
-        cells (pandas dataframe): Collection of cell-by-cell properties.
+        parents (pandas dataframe): Collection of parent properties.
         children (pandas dataframe): Collection of properties of the child
             objects. Must contain a column with a name that matches 'prop'.
-        prop (str): Name of the property to be added to the 'cells'
+        prop (str): Name of the property to be added to the 'parents'
             dataframe.
         rel_col (str): Name of the column in 'children' that contains the
             object ID of the parent.
-        result_name (str): Name of the new 'cells' column holding the 
+        result_name (str): Name of the new 'parents' column holding the 
             calculated statistic.
         statistic (str): type of statistic to calculate for the chilren. Valid
             values are 'mean', 'median', and 'sum'. Defaults to 'mean'.
 
     Returns:
-        None (the dataframe 'cells' gets modified in place).      
+        None (the dataframe 'parents' gets modified in place).      
     """
       
     
@@ -218,16 +260,16 @@ def add_child_prop_to_cells (cells, children, prop, rel_col, result_name,
                 'sum': sum_x}
     
     property_values = []
-    for index, cell in cells.iterrows():
+    for index, parent in parents.iterrows():
         
         # Find indices of children that match both ImageNumber and ObjectNumber
-        # of the current cell
-        children_in_image = children['ImageNumber'] == cell['ImageNumber']
-        children_with_cell_id = children[rel_col] == cell['ObjectNumber']
-        children_in_cell = children_in_image & children_with_cell_id
+        # of the current parent
+        children_in_image = children['ImageNumber'] == parent['ImageNumber']
+        children_with_parent_id = children[rel_col] == parent['ObjectNumber']
+        children_in_parent = children_in_image & children_with_parent_id
         
-        # Extract the desired property from children of the current cell
-        prop_values = children.loc[children_in_cell, prop]
+        # Extract the desired property from children of the current parent
+        prop_values = children.loc[children_in_parent, prop]
         
         if prop_values.empty:
             curr_value = np.nan     
@@ -236,7 +278,7 @@ def add_child_prop_to_cells (cells, children, prop, rel_col, result_name,
         
         property_values.append(curr_value)
         
-    cells[result_name] = property_values
+    parents[result_name] = property_values
     
     return None
 
