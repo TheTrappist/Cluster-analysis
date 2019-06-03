@@ -14,6 +14,7 @@
 *.csv
 *.json
 *.zip
+*.roi
 *.h5
 
 # MacOS general entries:
