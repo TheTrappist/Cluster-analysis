@@ -5,6 +5,7 @@
 # Image files
 *.png
 *.tif
+*.tiff
 *.jpg
 *.svg
 *.pdf
