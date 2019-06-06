@@ -395,3 +395,68 @@ def bootstrap_cell_prop (cells, measurement, group, nreps=1000):
     df = pd.DataFrame(data=result)
     
     return df
+
+def norm_clust_time_by_track (cells, col_num_clust, time_step, min_clust=5):
+    """Find valid single-cell cluster timecourses and normalize them by time.
+    
+    Goes through each unique trajectory in 'cells' (specified by the required 
+    column 'Track_and_group', which serves as a unique identifier of a tracking
+    trajectory), finds the first frame where clusters appear in the cell and
+    the last frame before they disappear, then normalizes the trajectory time
+    such that appearance of clusters corresponds to t=0 and disappearance of
+    clusters corresponds to t=1.0. Returns the valid cells as a new dataframe
+    with the additional columns 'Time_Norm', which is the normalized time as
+    defined above, and 'Time_Aligned_hrs', which is a timestamp in hours where
+    all trajectories are aligned by the starting point only without re-scaling.
+    
+    Args:
+        cells (pandas dataframe): Collection of cell-by-cell properties.
+        col_num_clust (str): Name of the column in 'cells' that stores the
+            number of clusters er cell.
+        time_step (float): Duration of one frame, in minutes
+        min_clust (int): Minimum number of clusters that need to be formed in
+            the cell at some point in the timecourse for it to be considered
+            a valid trajectory.
+            
+    Returns:
+         cells_filt (pandas dataframe): A truncated copy of 'cells' with all
+             cells that do not fit in a valid trajectory removed. Contains the 
+             two additional columns 'Time_Norm' and 'Time_Aligned_hrs.
+    """
+    
+    trajectories = []
+    cells_filt = cells.copy()
+    cells_filt['Time_Norm'] = np.nan # will be used to store normalized values
+    
+    for traj_id in cells_filt['Track_and_group'].unique():
+        traj = cells_filt.loc[cells_filt['Track_and_group'] == traj_id, 
+                              col_num_clust]
+        
+        # Only keep trajectories that begin and end with zero clusters
+        # but have min_clust clusters in the midle
+        if traj.iloc[0] > 0 or traj.iloc[-1] > 0 or max(traj) < min_clust:
+            continue
+        
+        #Find frame-to-frame differences in number of clusters
+        deltas = (traj.iloc[1:].values - traj.iloc[:-1].values).astype(bool)
+        
+        # Normalize time scaling
+        first_clust_frame = np.argmax(deltas)
+        last_clust_frame = len(deltas) - np.argmax(np.flip(deltas))
+        frame_interval = 1.0 / (last_clust_frame - first_clust_frame) 
+        
+        # Add rescaled time to cells_filt
+        cells_in_traj = cells_filt['Track_and_group'] == traj_id
+        n_time = cells_filt.loc[cells_in_traj, 'Metadata_Frame'].values
+        offset_time = n_time - first_clust_frame
+        n_time = offset_time * frame_interval
+        cells_filt.loc[cells_in_traj, 
+                       'Time_Aligned_hrs'] = offset_time * time_step / 60
+        cells_filt.loc[cells_in_traj, 'Time_Norm'] = n_time
+        trajectories.append(traj_id)
+    
+    # remove columns that don't match valid trajectories from cells_filt.
+    rejected_cells = ~cells_filt['Track_and_group'].isin(set(trajectories))
+    cells_filt.drop(cells_filt[rejected_cells].index, inplace=True)
+    
+    return cells_filt
