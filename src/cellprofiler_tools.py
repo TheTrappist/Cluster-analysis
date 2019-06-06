@@ -141,46 +141,65 @@ def get_relationship_cp_hdf5 (file, obj1, obj2, modules=[]):
         
     return df
 
-def add_image_prop_to_cells (cells, images, prop):
-    """Add a column for an image-specific property to the 'cells' dataframe.
+def add_image_prop_to_objects (objects, images, prop, fast=True):
+    """Add a column for an image-specific property to the 'objects' dataframe.
     
     This function is useful for plotting the distribution of individual cell 
     measurements against properties that are common to the entire image, such
-    as timepoint, type of treatment, etc. The 'cells' dataframe is appended
+    as timepoint, type of treatment, etc. The 'objects' dataframe is appended
     with a new column that contains the value of the specified property 'prop'
     for each cell. 'prop' must be a valid field in the 'images' dataframe.
     
     Args:
-        cells (pandas dataframe): Collection of cell-by-cell properties. Must 
+        objects (pandas dataframe): Collection of cell-by-cell properties. Must 
             contain the 'ImageNumber' column.
         images (pandas dataframe): Collection of image properties. Must contain
             an 'ImageNumber' column as well as a column matching the argument
             'prop'
-        prop (str): Name of the image-wide property to be added to the 'cells'
-            dataframe. Must be a valid column name in 'images'.
+        prop (str): Name of the image-wide property to be added to the 
+            'objects' dataframe. Must be a valid column name in 'images'.
+        fast (bool): If True, uses a much faster vectorized algorithm. Defaults
+            to True.
 
             
     Returns:
-        None (the dataframe 'cells' gets modified in place).      
+        None (the dataframe 'objects' gets modified in place).      
     """
     
-    if prop in cells.columns:
-        print('Warning: column named '+prop+' already exists in cells!')
+    if prop in objects.columns:
+        print('Warning: column named '+prop+' already exists in objects!')
+   
+    if fast: # Optimized method
+        # Get image numbers for rows of objects and images
+        obj_ids = objects['ImageNumber'].values
+        img_ids = images['ImageNumber'].values
+        
+         # Find corresponding row in images for each row in objects
+        index = np.argsort(img_ids)
+        sorted_img = img_ids[index]
+        sorted_index = np.searchsorted(sorted_img, obj_ids)
+        img_ind = index[sorted_index] # array of image index for each object
+        
+        # Pull desired image property for each object
+        objects[prop] = images.loc[img_ind, prop].values
     
-    property_values = []
-    
-    for index, cell in cells.iterrows():
-        curr_value = images.loc[images['ImageNumber'] == cell['ImageNumber'], 
-                                prop].item()
-
-        property_values.append(curr_value)
-    
-    cells[prop] = property_values
+    else: # old version of the method; slow
+        property_values = []    
+        for index, obj in objects.iterrows():
+            curr_value = images.loc[images['ImageNumber'] == obj['ImageNumber'], 
+                                    prop].item()
+            property_values.append(curr_value)
+        objects[prop] = property_values
     
     return None
 
 def add_parent_prop (children, parents, prop, rel_col, result_name):
     """Add a column for a parent-derived property in the "children" dataframe.
+    
+    This function is much faster than add_parent_prop_thorough by vectorizing
+    the sort and search operations. Each child must have exactly one parent,
+    and both 'ImageNumber' and 'ObjectNumber' fields must all be nonnegative
+    integers.
     
     Args:
         children (pandas dataframe): Collection of child object properties.
@@ -189,7 +208,53 @@ def add_parent_prop (children, parents, prop, rel_col, result_name):
             dataframe. Must be a valid column name in 'parents'.
         rel_col (str): Name of the column in 'children' that contains the
             object ID of the parent.
-        result_name (str): Name of the new column in'children' holding the 
+        result_name (str): Name of the new column in 'children' holding the 
+            parent-derived property
+            
+    Returns:
+        None (the dataframe 'children' gets modified in place).      
+    """
+      
+    # Get image and object numbers for parents and children
+    p_ids = parents[['ImageNumber', 'ObjectNumber']].values
+    c_ids = children[['ImageNumber', rel_col]].values
+        
+    # Determine minimum required multiplier for combining image and object
+    # IDs into a single identifier
+    all_ids = np.concatenate((p_ids, c_ids))
+    objnum_mult = np.max(all_ids[:,1]) + 1
+    
+    # Assign new single-number IDs to parents and children. These are unique
+    # values for parents, but multiple children all share their parent's ID
+    p_uids = p_ids[:,0] * objnum_mult + p_ids[:,1] # parent unique IDs
+    c_uids = c_ids[:,0] * objnum_mult + c_ids[:,1] # matching child IDs
+    
+    # Use the new single IDs indices to locate parent for each child
+    index = np.argsort(p_uids)
+    sorted_p = p_uids[index]
+    sorted_index = np.searchsorted(sorted_p, c_uids)
+    p_ind = index[sorted_index] # array containing parent index for each child
+    
+    # Pull desired parent property for each child
+    children[result_name] = parents.loc[p_ind, prop].values
+    
+    return None
+
+def add_parent_prop_thorough (children, parents, prop, rel_col, result_name):
+    """Add a column for a parent-derived property in the "children" dataframe.
+    
+    This is a much slower but more careful version of this function that relies
+    on the inefficient .iterrows() method. Consider using add_parent_prop 
+    instead.
+    
+    Args:
+        children (pandas dataframe): Collection of child object properties.
+        parents (pandas dataframe): Collection of parent object properties.
+        prop (str): Name of the property to be added to the 'children'
+            dataframe. Must be a valid column name in 'parents'.
+        rel_col (str): Name of the column in 'children' that contains the
+            object ID of the parent.
+        result_name (str): Name of the new column in 'children' holding the 
             parent-derived property
             
     Returns:
