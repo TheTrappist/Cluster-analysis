@@ -11,12 +11,34 @@ import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
 import matplotlib.pylab as plt
-#from scipy.optimize import curve_fit
 
 
+### Definitions of short useful functions #####################################
 def ax_fun(x, a):
     # Line with zero y-intercept
     return a*x
+
+def get_residuals(data_x, data_y, slope, y_intercept):
+    # Calculate residuals of a linear fit for x-y data
+    model_y = data_x * slope + y_intercept
+    resid = data_y - model_y
+    return resid
+
+def get_sum_squares(data):
+    # Calculate total sum of squares
+    mean = np.mean(data)
+    sum_sq = np.sum(np.square(data - mean))
+    return sum_sq
+
+def get_r_sq(data_x, data_y, slope, yint):
+    # Calculate r-squared statistic for a given line
+    resid = get_residuals(data_x, data_y, slope, yint)
+    sum_resid = np.sum(np.square(resid))
+    sum_sq = get_sum_squares(data_y)
+    r_sq = 1 - sum_resid/sum_sq
+    return r_sq
+
+### Definitions of major functions ############################################
 
 def calc_msd (track_coords, time_step):
     """Calculate and return mean squared displacement from provided tracks.
@@ -159,6 +181,76 @@ def plot_msd(t_dsq, msd_data, fit_params=None, rc_params=[18,8], ms=3):
 
     
     return fig, axarr
+
+def bootstrap_linreg (x, y, slope=None, nreps=1000, ci=95):
+    """Calculate bootstrap confidence intervals for a linear regression.
+    
+    Fits the provided data to a straight line (optionally with a fixed slope),
+    and calculates percentile confidence intervals for the linear fit and the
+    goodness of fit (R-squared) parameter by subsampling from the original 
+    dataset.
+    
+    
+    Args:
+        x (array_like): x-coordinates of the data.
+        y (array_like): y-coordinates of the data. Must have the same legnth as
+            x.
+        slope (float): Fixed slope for the linear fit. If None, this function
+            performs a true linear regression  and finds both slope and 
+            y-intercept. Defaults to None.
+        nreps (int): Number of bootstrap iterations. Defaults to 1000.
+        ci (float): confidence interval for bootstrap results. Defaults to 95.
+            
+    Returns:
+         result (dict): results of the bootstrap analysis.
+    """
+
+    len_data = len(x)
+    indices = np.arange(len_data)
+    
+    slopes = np.zeros(nreps)
+    y_ints = np.zeros(nreps)
+    r_sqs = np.zeros(nreps)
+    
+    # Perform the bootstrap
+    for i in range(nreps):
+        # Select samples with replacement
+        subsamp_indices = np.random.choice(indices, len_data)
+        subsamp_x = x[subsamp_indices]
+        subsamp_y = y[subsamp_indices]
+        
+        # Fit line (y = ax + b) to the selected samples
+        if slope: # fixed slope
+            a = slope
+            b = np.mean(subsamp_y - a * subsamp_x)
+        else: # true regression
+            r = stats.linregress(subsamp_x,subsamp_y)
+            a = r.slope
+            b = r.intercept
+            
+        r_sq = get_r_sq(subsamp_x,subsamp_y,a,b)
+        
+        slopes[i] = a
+        y_ints[i] = b
+        r_sqs[i] = r_sq
+      
+    # Calculate means and confidence intervals
+    mean_slope = np.mean(slopes)
+    mean_y_int = np.mean(y_ints)
+    mean_r_sqs = np.mean(r_sqs)
+    
+    ci_low_high = [50 - ci/2, 50 + ci/2]
+    ci_slope = np.percentile(slopes, ci_low_high)
+    ci_int = np.percentile(y_ints, ci_low_high)
+    ci_rsq = np.percentile(r_sqs, ci_low_high)
+    
+    result = {"slope" : mean_slope,
+              "y_int" : mean_y_int,
+              "r_sq" : mean_r_sqs,
+              "ci_slope" : ci_slope,
+              "ci_y_int" : ci_int,
+              "ci_rsq" : ci_rsq}
+    return result
 
 def make_fig_save_dirs(save_dir_root, pdf=False):
     """Create directories for saving figures in svg and png formats
