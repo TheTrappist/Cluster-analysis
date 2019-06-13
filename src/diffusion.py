@@ -8,6 +8,7 @@ Written by Vladislav Belyy (UCSF)
 """
 import os
 import numpy as np
+import math
 from scipy import stats
 from scipy.optimize import curve_fit
 import matplotlib.pylab as plt
@@ -39,6 +40,65 @@ def get_r_sq(data_x, data_y, slope, yint):
     return r_sq
 
 ### Definitions of major functions ############################################
+    
+def diffconst_gw(R, T, c, eta=0.056):
+    """Calculate diffusion constant based on Guigas and Weiss 2006 paper.
+    
+    Returns the calculated diffusion constant of a membrane inclusion, as
+    derived in the 2006 paper by Guigas and Weiss, 
+    doi 10.1529/biophysj.106.087031 .
+    
+    Args:
+        R (float): radius of inclusion, in nm.
+        T (float): Temperature, in Kelvin.
+        c (float): boundary conditions, in nm (c=6 for stick, c=4 for slip).
+        eta (float): membrane viscosity, in Pa s. Defaults to 0.056 (the value
+            used in the paper).
+        
+    Returns:
+        D (float): Diffusion constant, in um^2/s.
+ 
+    """
+    
+    k = 1.38e-23 # Boltzmann constant in J*K^(-1)
+    R_m = R / 1e9 # convert nm to meters
+    u_conv = 1e12 # to convert from m^2/s to um^2/s
+    D = u_conv*k*T*math.atan(c/float(R)) / (8*np.pi *eta *R_m)
+    return D
+
+def diffconst_sd(R, T, c, eta_m=0.19, eta_c=0.039, h=3.5):
+    """Calculate diffusion constant based on work by Saffman and Delbruck.
+    
+    Returns the calculated diffusion constant of a membrane inclusion, as
+    derived in the 1975 PNAS paper, doi 10.1073/pnas.72.8.3111 .
+    
+    Args:
+        R (float): radius of inclusion, in nm.
+        T (float): Temperature, in Kelvin.
+        c (float): boundary conditions, in nm (c=6 for stick, c=4 for slip).
+        eta_m (float): membrane viscosity, in Pa s. Defaults to 0.19 (value
+            used in the 2006 Guigas and Weiss paper).
+        eta_c (float): solvent viscosity, in Pa s. Defaults to 0.039 (value
+            used in the 2006 Guigas and Weiss paper).
+        h (float): thickness of membrane, in nm. Defaults to 3.5 (value
+            used in the 2006 Guigas and Weiss paper).
+        
+    Returns:
+        D (float): Diffusion constant, in um^2/s.
+ 
+    """
+    
+    k = 1.38e-23 # Boltzmann constant in J*K^(-1)
+    gamma = 0.5772 # Euler's constant
+    
+    m2s_um2s = 1e12 # to convert from m^2/s to um^2/s
+    nm_m = 1e-9 # to convert from nm to m
+    
+    h_m = h * nm_m # height in meters
+    
+    D = m2s_um2s * k*T*(np.log(h*eta_m/(R*eta_c))-gamma) / (4*np.pi*eta_m*h_m)
+    
+    return D
 
 def calc_msd (track_coords, time_step):
     """Calculate and return mean squared displacement from provided tracks.
