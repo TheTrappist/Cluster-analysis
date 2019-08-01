@@ -12,13 +12,14 @@
 // Originally written by Vlad Belyy on 2019-04-30.
 
 // These need to be set manually
-template_name = "vVB_"; // what do all the data folders start with?
+//template_name = "vVB_"; // what do all the data folders start with?
+template_name = "2019"; 
 save_results = true;
-save_dir_name = "Max_intensity_stacks";
+save_dir_name = "Avg_intensity_stacks";
 
 z_stack = true; // make a z-stack?
 // options for projection: "Average Intensity", "Max Intensity"
-projection_type = "Max Intensity" // what type of projection to use?
+projection_type = "Average Intensity" // what type of projection to use?
 
 // Ask user to point to data file directory
 dir_working = getDirectory("Choose the parent directory of uManager data files");

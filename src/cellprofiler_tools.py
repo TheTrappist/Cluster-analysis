@@ -382,13 +382,18 @@ def bootstrap_cell_prop (cells, measurement, group, nreps=1000):
         cells_in_group = cells.loc[cells[group] == grp]
         total_cells = len(cells_in_group)
         
+        
         # Bootstrap the samples to estimate uncertainties
         metric = []
         for i in range(nreps):
-            subsamp_cells = np.random.choice(list(cells_in_group[measurement]),
-                                             total_cells)
-            metric_mean_curr_rep = np.mean(subsamp_cells)
-            metric.append(metric_mean_curr_rep)
+            if total_cells > 0:
+                subsamp_cells = np.random.choice(list(
+                        cells_in_group[measurement]), total_cells)
+                metric_mean_curr_rep = np.mean(subsamp_cells)
+                metric.append(metric_mean_curr_rep)
+            else:
+                metric.append(np.nan)
+
         
         result.update({grp : metric})
     
