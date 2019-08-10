@@ -12,11 +12,16 @@
 
 # Raw data files
 *.xml
+*.properties
+*.xlsx
+*.scn
+*.gel
 *.csv
 *.json
 *.zip
 *.roi
 *.h5
+*.db
 
 # MacOS general entries:
 
