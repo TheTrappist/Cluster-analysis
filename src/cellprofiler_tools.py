@@ -401,7 +401,8 @@ def bootstrap_cell_prop (cells, measurement, group, nreps=1000):
     
     return df
 
-def norm_clust_time_by_track (cells, col_num_clust, time_step, min_clust=5):
+def norm_clust_time_by_track (cells, col_num_clust, time_step, min_clust=5, 
+                              max_clust_end=0):
     """Find valid single-cell cluster timecourses and normalize them by time.
     
     Goes through each unique trajectory in 'cells' (specified by the required 
@@ -421,7 +422,9 @@ def norm_clust_time_by_track (cells, col_num_clust, time_step, min_clust=5):
         time_step (float): Duration of one frame, in minutes
         min_clust (int): Minimum number of clusters that need to be formed in
             the cell at some point in the timecourse for it to be considered
-            a valid trajectory.
+            a valid trajectory. Defaults to 5
+        max_clust_end (int): Maximum clusters left at the end of the trajectory
+            before the trajectory is discarded from analysis. Defautls to 0.
             
     Returns:
          cells_filt (pandas dataframe): A truncated copy of 'cells' with all
@@ -437,9 +440,12 @@ def norm_clust_time_by_track (cells, col_num_clust, time_step, min_clust=5):
         traj = cells_filt.loc[cells_filt['Track_and_group'] == traj_id, 
                               col_num_clust]
         
-        # Only keep trajectories that begin and end with zero clusters
-        # but have min_clust clusters in the midle
-        if traj.iloc[0] > 0 or traj.iloc[-1] > 0 or max(traj) < min_clust:
+        # Only keep trajectories that begins with zero clusters and ends with 
+        # fewer than max_clust_end clusters, while having at least min_clust 
+        # clusters in the middle
+        if traj.iloc[0] > 0 or traj.iloc[-1] > max_clust_end:
+            continue
+        if max(traj) < min_clust:
             continue
         
         #Find frame-to-frame differences in number of clusters
