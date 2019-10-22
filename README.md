@@ -6,17 +6,20 @@ with the included code, and this readme file contains step-by-step instructions
 for doing so. Generally, each analysis segment is split into two parts:
 1) Primary image analysis in ImageJ or CellProfiler.
 2) Secondary analysis of the processed data in Python (using Jupyter notebooks).
+   This is the step that generates all the final plots.
 
 
 *** Software versions used ***
 The code has been explicitly tested with the software versions indicated below.
-Small modifications may or may not be required to run it on your machine.
+Small code modifications may or may not be required to run it on your machine if
+your software versions differ from the ones listed here.
 
-Operating systems: macOS High Sierra and Windows 10.
-Python: Version 3.5.6 (Anaconda distribution).
-CellProfiler: Version 3.1.8 (stable).
-ImageJ: Version 1.52p (Fiji distribution).
-TrackMate ImageJ plugin: Version 4.0.1.
+Operating systems: tested on macOS High Sierra and MS Windows 10.
+Python: Version 3.5.6 (Anaconda dist.). https://www.anaconda.com/distribution/
+Seaborn (data visualization library): Version 0.9.0. https://seaborn.pydata.org/
+CellProfiler: Version 3.1.8. https://cellprofiler.org/
+ImageJ: Version 1.52p (Fiji distribution). https://fiji.sc/
+TrackMate ImageJ plugin: Version 4.0.1. https://imagej.net/TrackMate/
 
 
 *** Project organization ***
@@ -132,11 +135,10 @@ settings as desired).
 11) When ready for export, change "save_figs" to "True" and run the notebook.
 You will now have .pdf exports of all the figures!
 
-
 - Fig. 4C, 4D, 4E, 4F (FRAP of unclustered and clustered IRE1 with tracking):
 1) In ImageJ, open a FRAP video in which one or more clusters (or unclustered
 ER regions) get bleached.
-    If analyzing a bleached cluster:
+    If analyzing cluster FRAP data:
 2.1a) Open the TrackMate plugin in manual mode.
 2.1b) Starting at the first frame of the video, focus on the cluster that will be
 bleached and track it until the bleaching frame using TrackMate's semi-automatic
@@ -153,12 +155,12 @@ least 50 recovery frames, ideally more.
 while keeping the file open. This will transfer TrackMate's data to ImageJ
 tables.
 2.1g) With the tables open, run the macro included with this project named
-"Extract_two_radii_TrackMate.ijm". This Macro will use the centroids of the
+"Extract_two_radii_TrackMate.ijm". This macro will use the centroids of the
 tracked spots and save inner and outer diameter intensities in a separate file.
 Note that if you are dealing with very large or very small clusters, you may
 want to change the "inner_radius" and "outer_radius" settings of the ImageJ
 macro.
-    Alternatively, if analyzing unclustered protein diffusion:
+    Alternatively, if analyzing unclustered protein FRAP data:
 2.2a) Run the provided ImageJ macro, "Manual_FRAP_ROI.ijm". This macro allows
 the user to input the bleach radius and quickly identify bleached regions and
 corresponding local background regions by alternating mouse clicks. A left click
@@ -166,3 +168,66 @@ draws a FRAP ROI, and a subsequent click draws a corresponding background ROI
 (this should be a region close to the one being bleached and with similar
 mean intensity). The macro terminates when the user presses the right mouse
 button and saves the data.
+    Regardless of the choice above, continue with the following steps:
+3) Load the Jupyter notebook "04_Fig4_FRAP-with-and-without-clustering".
+4) Modify the parameters in the first cell to match your acquisition parameters
+and point the notebook to the location of your clustered and unclustered FRAP
+data. Set "excluded_trace_file" to "None" for the first pass or edit the file
+itself to be empty; this is a config file that you can use later to manually
+remove traces from analysis in which the FRAP fit failed.
+5) Run the notebook and look at the generated fit traces in the output folder.
+If the fit obviously failed in any of them, change the fit parameters or add the
+traces to the excluded trace file. Repeat until the resulting fits look
+reasonable. The summary figure can be found in the "summary" subfolder of the
+output folder.
+
+- Fig. 5B, 5C, 5D, 5E, 5F (MSD plots, cluster diffusion constant estimate):
+1) One by one, load your videos in ImageJ and track clusters using TrackMate's
+fully automated tracking mode. For consistency, make sure to use the same
+illumination conditions and TrackMate conditions across all files; otherwise,
+the results will not be directly comparable. Save all TrackMate results as .xml
+files in one folder.
+2) Load the Jupyter notebook "05_Fig5B-F_Tracking_clusters".
+3) Modify the file directories, imaging parameters, and fitting parameters in
+the first cell of the notebook.
+4) Run the notebook. You're done!
+
+- Fig. 6C and 6D (photoconversion experiments):
+1) Open your first video in ImageJ and manually draw the outline of the cell
+using the freehand selection tool. Measure ("Analyze" > "Measure") the ROI in
+the first post-photoconversion frame of the movie, making sure that the measured
+results include "Area", "Mean" (mean intensity), and "Slice".
+2) Scroll forward until the last frame in the movie before the clusters begin to
+dissolve. Manually draw the cell outline and measure again.
+3) Scroll forward until the first frame in the movie after the clusters finished
+dissolving. Manually draw the cell outline and measure again.
+4) Choose a cell-free region of the movie and draw an ROI of comparable area to
+your cell in it. Measure it.
+5) Save the measurement file as a .csv table. At this point, the file should
+have four rows in the order shown above (start of experiment, last frame before
+clusters begin to dissolve, first frame after dissolution is complete, and
+background region).
+6) Repeat steps 1-5 for the remaining videos and save all files in the same
+folder.
+7) Load the Jupyter notebook "06_Fig6_Photoconversion".
+8) Change the parameters in the first cell of the notebook, making sure that
+frame_time and stress_start_min reflect the settings of your actual experiment.
+9) Run the notebook. You're done!
+
+
+*** Notes ***
+- The script "plotting_settings.py" in the "src" folder is called at the
+beginning of each Jupyter notebook to set plot styles to be uniform across the
+notebooks. Feel free to make changes to this file to modify all your plots in a
+consistent manner.
+- I have attempted to make the code reasonably well-documented and organized. It
+is my hope that a basic working knowledge of Python and Pandas (which is
+included in the Anaconda distribution) will allow you to quickly start making
+changes to make the analysis fit your specific needs.
+- If you find errors in the code or write additional code that you think would
+be useful to contribute to this repository, either raise an issue on Github or
+contact me on the Image.sc forum (https://forum.image.sc/). I will do my best to
+respond as quickly as possible. My username on both resources is "TheTrappist".
+
+Thank you, and hope this helps!
+- Vladislav (Vlad) Belyy
