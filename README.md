@@ -15,11 +15,11 @@ Small code modifications may or may not be required to run it on your machine if
 your software versions differ from the ones listed here.
 
 Operating systems: tested on macOS High Sierra and MS Windows 10.
-Python: Version 3.5.6 (Anaconda dist.). https://www.anaconda.com/distribution/
-Seaborn (data visualization library): Version 0.9.0. https://seaborn.pydata.org/
-CellProfiler: Version 3.1.8. https://cellprofiler.org/
-ImageJ: Version 1.52p (Fiji distribution). https://fiji.sc/
-TrackMate ImageJ plugin: Version 4.0.1. https://imagej.net/TrackMate/
+- Python: Version 3.5.6 (Anaconda dist.). https://www.anaconda.com/distribution/
+- Seaborn (for data visualization): Version 0.9.0. https://seaborn.pydata.org/
+- CellProfiler: Version 3.1.8. https://cellprofiler.org/
+- ImageJ: Version 1.52p (Fiji distribution). https://fiji.sc/
+- TrackMate ImageJ plugin: Version 4.0.1. https://imagej.net/TrackMate/
 
 
 ### Project organization
@@ -196,7 +196,8 @@ the first cell of the notebook.
 1) Open your first video in ImageJ and manually draw the outline of the cell
 using the freehand selection tool. Measure ("Analyze" > "Measure") the ROI in
 the first post-photoconversion frame of the movie, making sure that the measured
-results include "Area", "Mean" (mean intensity), and "Slice".
+results include "Area", "Mean" (mean intensity), and "Slice". Also, make sure
+you are measuring in the photoconverted (red) channel!
 2) Scroll forward until the last frame in the movie before the clusters begin to
 dissolve. Manually draw the cell outline and measure again.
 3) Scroll forward until the first frame in the movie after the clusters finished
