@@ -15,7 +15,8 @@ into track-based lists of spot coordinates (provided the tracks don't branch).
 This is useful, e.g., for diffusion analysis.
 
 2) Custom MSD analysis on particle trajectories, e.g. grouping particles by
-intensity or radius to see how their movement changes in response to these properties.
+intensity or radius to see how their movement changes in response to these
+properties.
 
 3) Automated FRAP analysis on small diffusing spots with local background
 correction.
@@ -23,16 +24,21 @@ correction.
 4) General FRAP analysis.
 
 5) Plotting the distribution of clusters per cell in high-content imaging
-experiments. This makes heavy use of the free and open source CellProfiler suite
+experiments, both from fixed cells and from live cells with cell tracking.
+This makes heavy use of the free and open source CellProfiler suite
 (https://cellprofiler.org/)
 
-### Software versions used
+7) Analysis of cluster photoconversion experiments.
+
+
+
+### Software versions
 The code has been explicitly tested with the software versions indicated below.
 Small code modifications may or may not be required to run it on your machine if
 your software versions differ from the ones listed here.
 
 Operating systems: tested on macOS High Sierra and MS Windows 10.
-- Python: Version 3.5.6 (Anaconda dist.). https://www.anaconda.com/distribution/
+- Python: Version 3.7.4 (Anaconda dist.). https://www.anaconda.com/distribution/
 - Seaborn (for data visualization): Version 0.9.0. https://seaborn.pydata.org/
 - CellProfiler: Version 3.1.8. https://cellprofiler.org/
 - ImageJ: Version 1.52p (Fiji distribution). https://fiji.sc/
@@ -61,7 +67,7 @@ changes to make the analysis fit your specific needs.
 - If you find errors in the code or write additional code that you think would
 be useful to contribute to this repository, either raise an issue on Github or
 contact me on the Image.sc forum (https://forum.image.sc/). I will do my best to
-respond as quickly as possible. My username on both resources is "TheTrappist".
+respond as quickly as possible.
 
 Thank you, and hope this helps!
-Vladislav (Vlad) Belyy
+TheTrappist
